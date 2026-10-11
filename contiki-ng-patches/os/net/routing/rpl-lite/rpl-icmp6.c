@@ -59,7 +59,7 @@
 
 /*---------------------------------------------------------------------------*/
 // @rsi2023 change --- Se incluye "variables_compartidas", contiene los eventos de cada mensaje relevante
-#include "compartido/proyecto-rsi-grupo-3/cliente/variables_compartidas.h"
+#include "rpl-led-visualization/cliente/variables_compartidas.h"
 
 // Se definen las variables que usaremos y ademas aparecen en "variables_compartidas.h"
 process_event_t dio_evento;

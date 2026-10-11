@@ -24,9 +24,9 @@ if [[ "$RPL" != "lite" && "$RPL" != "classic" ]]; then
 fi
 CONTIKI_DIR="$(cd "$CONTIKI_DIR" && pwd)"
 
-# The patched sources #include "compartido/proyecto-rsi-grupo-3/cliente/variables_compartidas.h",
-# so the project has to live at <contiki-ng>/compartido/proyecto-rsi-grupo-3.
-EXPECTED="$CONTIKI_DIR/compartido/proyecto-rsi-grupo-3"
+# The patched sources #include "rpl-led-visualization/cliente/variables_compartidas.h",
+# so the project has to live at <contiki-ng>/rpl-led-visualization.
+EXPECTED="$CONTIKI_DIR/rpl-led-visualization"
 if [[ "$(cd "$EXPECTED" 2>/dev/null && pwd -P)" != "$(cd "$REPO_DIR" && pwd -P)" ]]; then
   echo "Warning: this repository is not at $EXPECTED" >&2
   echo "         The patched files include the shared header from that path; the build" >&2

@@ -70,7 +70,7 @@
 /*---------------------------------------------------------------------------*/
 // @rsi2023 change --- Se incluye "variables_compartidas", contiene el evento relevante al envio de un mensaje usando el shell
 // Ademas, tambien contiene una variable correspondiente a la IP del nodo destino
-#include "compartido/proyecto-rsi-grupo-3/cliente/variables_compartidas.h"
+#include "rpl-led-visualization/cliente/variables_compartidas.h"
 
 // Se definen las variable que usaremos y ademas aparecen en "variables_compartidas.h"
 process_event_t udp_evento;
