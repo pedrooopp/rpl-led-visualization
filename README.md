@@ -60,25 +60,14 @@ Every change inside the Contiki-NG sources is tagged with a `@rsi2023 change` co
 
 1. **Clone this repository into the Contiki-NG tree.** The location matters: the patched sources include the shared header by that path, and the Makefiles expect Contiki-NG three levels up.
 
-   ```bash
-   cd contiki-ng
-   git clone <this-repo-url> compartido/proyecto-rsi-grupo-3
-   ```
-
-2. **Apply the Contiki-NG patches** (RPL-Lite by default; pass `classic` for RPL-Classic):
-
-   ```bash
-   compartido/proyecto-rsi-grupo-3/contiki-ng-patches/apply-patches.sh . lite
-   ```
-
-   Originals are saved as `*.orig` next to each patched file.
+2. **Apply the Contiki-NG patches** (RPL-Lite by default; pass `classic` for RPL-Classic). Originals are saved as `*.orig` next to each patched file.
 
 3. **Choose the RPL implementation** (optional). RPL-Lite is the default. For RPL-Classic, uncomment `MAKE_ROUTING = MAKE_ROUTING_RPL_CLASSIC` in both `cliente/Makefile` and `border-router/Makefile`, then run `make distclean` in each.
 
 ### On hardware (CC1350)
 
 ```bash
-cd compartido/proyecto-rsi-grupo-3/cliente        && make TARGET=cc26x0-cc13x0 BOARD=launchpad/cc1350 cliente.upload
+cd rpl-led-visualization/cliente        && make TARGET=cc26x0-cc13x0 BOARD=launchpad/cc1350 cliente.upload
 cd ../border-router                               && make TARGET=cc26x0-cc13x0 BOARD=launchpad/cc1350 border-router.upload
 ```
 
