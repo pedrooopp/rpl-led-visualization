@@ -1,0 +1,27 @@
+# Contiki-NG build output
+build/
+obj_*/
+*.o
+*.a
+*.d
+*.elf
+*.hex
+*.bin
+*.map
+*.cooja
+*.native
+*.srec
+symbols.c
+symbols.h
+contiki-*.a
+contiki-*.map
+# Backups created by contiki-ng-patches/apply-patches.sh
+*.orig
+# Cooja
+COOJA.log
+COOJA.testlog
+*.log
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store

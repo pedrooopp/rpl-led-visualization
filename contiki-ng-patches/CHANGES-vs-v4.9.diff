@@ -1,0 +1,182 @@
+--- a/os/net/routing/rpl-classic/rpl-icmp6.c
++++ b/os/net/routing/rpl-classic/rpl-icmp6.c
+@@ -62,6 +62,14 @@
+ #define LOG_LEVEL LOG_LEVEL_RPL
+ 
+ /*---------------------------------------------------------------------------*/
++// @rsi2023 change --- Se incluye "variables_compartidas.h", contiene los eventos de cada mensaje relevante
++#include "compartido/proyecto-rsi-grupo-3/cliente/variables_compartidas.h"
++
++// Se definen las variables que usaremos y ademas aparecen en "variables_compartidas.h"
++process_event_t dio_evento;
++process_event_t dao_evento;
++process_event_t dis_evento;
++/*---------------------------------------------------------------------------*/
+ #define RPL_DIO_GROUNDED                 0x80
+ #define RPL_DIO_MOP_SHIFT                3
+ #define RPL_DIO_MOP_MASK                 0x38
+@@ -278,6 +286,11 @@
+   LOG_INFO_("\n");
+ 
+   uip_icmp6_send(addr, ICMP6_RPL, RPL_CODE_DIS, 2);
++
++  /*---------------------------------------------------------------------------*/
++  // @rsi2023 change --- Postea el evento correspondiente al envio de un DIS
++  process_post(PROCESS_BROADCAST, dis_evento, NULL);
++  /*---------------------------------------------------------------------------*/
+ }
+ /*---------------------------------------------------------------------------*/
+ static void
+@@ -485,7 +498,7 @@
+ /*---------------------------------------------------------------------------*/
+ void
+ dio_output(rpl_instance_t *instance, uip_ipaddr_t *uc_addr)
+-{
++{	
+   unsigned char *buffer;
+   int pos;
+   int is_root;
+@@ -624,6 +637,8 @@
+   LOG_INFO_6ADDR(uc_addr);
+   LOG_INFO_("\n");
+   uip_icmp6_send(uc_addr, ICMP6_RPL, RPL_CODE_DIO, pos);
++
++
+ #else /* RPL_LEAF_ONLY */
+   /* Unicast requests get unicast replies! */
+   if(uc_addr == NULL) {
+@@ -631,6 +646,7 @@
+              (unsigned)instance->current_dag->rank);
+     uip_create_linklocal_rplnodes_mcast(&addr);
+     uip_icmp6_send(&addr, ICMP6_RPL, RPL_CODE_DIO, pos);
++
+   } else {
+     LOG_INFO("Sending unicast-DIO with rank %u to ",
+              (unsigned)instance->current_dag->rank);
+@@ -638,6 +654,18 @@
+     LOG_INFO_("\n");
+     uip_icmp6_send(uc_addr, ICMP6_RPL, RPL_CODE_DIO, pos);
+   }
++  /*---------------------------------------------------------------------------*/
++  // @rsi2023 change --- Postea el evento correspondiente al envio de un DIO
++  static bool unicast_indicator; // Se define un indicador si el DIO es unicast o multicast
++
++  if (uc_addr != NULL){
++	  unicast_indicator = true;
++  } else {
++	  unicast_indicator = false;
++  }
++
++  process_post(PROCESS_BROADCAST, dio_evento, &unicast_indicator); // En "data" se pasa el indicador unicast
++  /*---------------------------------------------------------------------------*/
+ #endif /* RPL_LEAF_ONLY */
+ }
+ /*---------------------------------------------------------------------------*/
+@@ -1245,6 +1273,11 @@
+ 
+   /* Sending a DAO with own prefix as target. */
+   dao_output_target(parent, &prefix, lifetime);
++
++  /*---------------------------------------------------------------------------*/
++  //@rsi2023 change --- Postea el evento correspondiente al envio de un DAO
++  process_post(PROCESS_BROADCAST, dao_evento, NULL);
++  /*---------------------------------------------------------------------------*/
+ }
+ /*---------------------------------------------------------------------------*/
+ void
+--- a/os/net/routing/rpl-classic/rpl-timers.c
++++ b/os/net/routing/rpl-classic/rpl-timers.c
+@@ -48,6 +48,8 @@
+ #include "sys/ctimer.h"
+ #include "sys/log.h"
+ 
++#define FACTOR 3 //@rsi2023 change --- Se define la constante "FACTOR", la cual es más pequeña al factor usando para enlentecer el sistema
++
+ #define LOG_MODULE "RPL"
+ #define LOG_LEVEL LOG_LEVEL_RPL
+ 
+@@ -146,8 +148,9 @@
+   instance->dio_counter = 0;
+ 
+   /* Schedule the timer. */
+-  LOG_INFO("Scheduling DIO timer %lu ticks in future (Interval)\n", ticks);
+-  ctimer_set(&instance->dio_timer, ticks, &handle_dio_timer, instance);
++  LOG_INFO("Scheduling DIO timer %lu ticks in future (Interval)\n",
++           (unsigned long)ticks);
++  ctimer_set(&instance->dio_timer, ticks*FACTOR, &handle_dio_timer, instance); //@rsi2023 change --- Se multiplica el tiempo por "FACTOR"
+ 
+ #ifdef RPL_CALLBACK_NEW_DIO_INTERVAL
+   RPL_CALLBACK_NEW_DIO_INTERVAL((CLOCK_SECOND * 1UL << instance->dio_intcurrent) / 1000);
+@@ -165,7 +168,7 @@
+       dio_send_ok = 1;
+     } else {
+       LOG_WARN("Postponing DIO transmission since link local address is not ok\n");
+-      ctimer_set(&instance->dio_timer, CLOCK_SECOND, &handle_dio_timer, instance);
++      ctimer_set(&instance->dio_timer, CLOCK_SECOND*FACTOR, &handle_dio_timer, instance); //@rsi2023 change --- Se multiplica el tiempo por "FACTOR"
+       return;
+     }
+   }
+@@ -183,9 +186,9 @@
+     }
+     instance->dio_send = 0;
+     LOG_DBG("Scheduling DIO timer %lu ticks in future (sent)\n",
+-            instance->dio_next_delay);
+-    ctimer_set(&instance->dio_timer, instance->dio_next_delay,
+-               handle_dio_timer, instance);
++            (unsigned long)instance->dio_next_delay);
++    ctimer_set(&instance->dio_timer, (instance->dio_next_delay)*FACTOR,
++               handle_dio_timer, instance); //@rsi2023 change --- Se multiplica el tiempo por "FACTOR"
+   } else {
+     /* Check if we need to double interval. */
+     if(instance->dio_intcurrent <
+@@ -207,7 +210,7 @@
+   next_dis = RPL_DIS_INTERVAL / 2 +
+     ((uint32_t)RPL_DIS_INTERVAL * (uint32_t)random_rand()) / RANDOM_RAND_MAX -
+     RPL_DIS_START_DELAY;
+-  ctimer_set(&periodic_timer, CLOCK_SECOND, handle_periodic_timer, NULL);
++  ctimer_set(&periodic_timer, CLOCK_SECOND*FACTOR, handle_periodic_timer, NULL); //@rsi2023 change --- Se multiplica el tiempo por "FACTOR"
+ }
+ /*---------------------------------------------------------------------------*/
+ /* Resets the DIO timer in the instance to its minimal interval. */
+@@ -258,8 +261,8 @@
+     expiration_time = expiration_time + (random_rand() % (expiration_time / 2));
+     LOG_DBG("Scheduling DAO lifetime timer %u ticks in the future\n",
+             (unsigned)expiration_time);
+-    ctimer_set(&instance->dao_lifetime_timer, expiration_time,
+-               handle_dao_timer, instance);
++    ctimer_set(&instance->dao_lifetime_timer, (expiration_time)*FACTOR,
++               handle_dao_timer, instance); //@rsi2023 change --- Se multiplica el tiempo por "FACTOR"
+   }
+ }
+ /*---------------------------------------------------------------------------*/
+@@ -275,7 +278,7 @@
+ 
+   if(!dio_send_ok && uip_ds6_get_link_local(ADDR_PREFERRED) == NULL) {
+     LOG_INFO("Postpone DAO transmission\n");
+-    ctimer_set(&instance->dao_timer, CLOCK_SECOND, handle_dao_timer, instance);
++    ctimer_set(&instance->dao_timer, CLOCK_SECOND*FACTOR, handle_dao_timer, instance); //@rsi2023 change --- Se multiplica el tiempo por "FACTOR"
+     return;
+   }
+ 
+@@ -343,8 +346,8 @@
+     }
+     LOG_DBG("Scheduling DAO timer %u ticks in the future\n",
+             (unsigned)expiration_time);
+-    ctimer_set(&instance->dao_timer, expiration_time,
+-               handle_dao_timer, instance);
++    ctimer_set(&instance->dao_timer, expiration_time*FACTOR,
++               handle_dao_timer, instance); //@rsi2023 change --- Se multiplica el tiempo por "FACTOR"
+ 
+     set_dao_lifetime_timer(instance);
+   }
+@@ -524,8 +527,8 @@
+ void
+ rpl_schedule_probing_now(rpl_instance_t *instance)
+ {
+-  ctimer_set(&instance->probing_timer, random_rand() % (CLOCK_SECOND * 4),
+-             handle_probing_timer, instance);
++  ctimer_set(&instance->probing_timer, (random_rand() % (CLOCK_SECOND * 4))*FACTOR,
++             handle_probing_timer, instance); //@rsi2023 change --- Se multiplica el tiempo por "FACTOR"
+ }
+ #endif /* RPL_WITH_PROBING */
+ 
